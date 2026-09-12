@@ -61,7 +61,8 @@ public static class SapValueConverter
             case SapFieldKind.Decimal:
                 if (!double.TryParse(rawValue, NumberStyles.Float | NumberStyles.AllowThousands, options.Culture, out var doubleValue))
                 {
-                    error = $"'{rawValue}' is not a number (culture: {options.Culture.Name.Length == 0 ? "invariant" : options.Culture.Name}).";
+                    var cultureName = options.Culture.Name.Length == 0 ? "invariant" : options.Culture.Name;
+                    error = $"'{rawValue}' is not a number (culture: {cultureName}).";
                     return false;
                 }
 
