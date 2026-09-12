@@ -1,0 +1,6 @@
+ItemCode,ItemName,ForeignName,ItemsGroupCode,ItemType,InventoryItem,SalesItem,PurchaseItem,InventoryUOM,DefaultWarehouse,BarCode,Preferred Vendor,Min Stock,Max Stock,Sales Tax Code,PriceList,Price,Currency,PriceList2,Price2,Currency2,U_Category
+A-1001,"Steel bracket, 40mm",Stahlwinkel 40mm,100,item,Y,Y,Y,EA,01,5012345678900,V10000,25,500,EXE,1,12.50,USD,2,11.75,USD,Hardware
+A-1002,"Steel bracket, 60mm",Stahlwinkel 60mm,100,item,Y,Y,Y,EA,01,5012345678917,V10000,25,500,EXE,1,15.90,USD,2,14.25,USD,Hardware
+A-1003,"Hex bolt M8 x 40 (pack of 100)",,100,item,Y,Y,Y,BOX,01,5012345678924,V10000,10,200,EXE,1,8.00,USD,,,,Fasteners
+S-2001,On-site installation (per hour),,200,labour,N,Y,N,HR,,,,,,EXE,1,95.00,USD,,,,Services
+A-1004,Rubber gasket 40mm,,100,item,Yes,Yes,Yes,EA,01,,V10001,50,1000,EXE,1,2.35,USD,,,,Seals

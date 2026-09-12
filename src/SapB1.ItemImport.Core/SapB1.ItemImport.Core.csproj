@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>SapB1.ItemImport.Core</RootNamespace>
+    <AssemblyName>SapB1.ItemImport.Core</AssemblyName>
+  </PropertyGroup>
+
+</Project>

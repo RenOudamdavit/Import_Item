@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>SapB1.ItemImport.Cli</RootNamespace>
+    <AssemblyName>sapb1-import-items</AssemblyName>
+    <RollForward>LatestMinor</RollForward>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SapB1.ItemImport.Core\SapB1.ItemImport.Core.csproj" />
+    <ProjectReference Include="..\SapB1.ItemImport.ServiceLayer\SapB1.ItemImport.ServiceLayer.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

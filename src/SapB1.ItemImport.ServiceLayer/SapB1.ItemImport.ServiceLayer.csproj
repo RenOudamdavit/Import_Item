@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>SapB1.ItemImport.ServiceLayer</RootNamespace>
+    <AssemblyName>SapB1.ItemImport.ServiceLayer</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SapB1.ItemImport.Core\SapB1.ItemImport.Core.csproj" />
+  </ItemGroup>
+
+</Project>

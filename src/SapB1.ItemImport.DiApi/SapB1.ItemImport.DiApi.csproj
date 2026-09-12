@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Optional Windows-only gateway for shops that must go through the SAP DI API instead of the
+    Service Layer. It is deliberately NOT part of Import_Item.sln: building it requires the SAP
+    Business One DI API to be installed locally, which a Linux or CI build agent will not have.
+
+    Build it explicitly, on a machine with the DI API installed:
+      dotnet build src/SapB1.ItemImport.DiApi/SapB1.ItemImport.DiApi.csproj -p:SapInteropPath="C:\Path\To\Interop.SAPbobsCOM.dll"
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <RootNamespace>SapB1.ItemImport.DiApi</RootNamespace>
+    <AssemblyName>SapB1.ItemImport.DiApi</AssemblyName>
+    <Platforms>x64</Platforms>
+    <PlatformTarget>x64</PlatformTarget>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(SapInteropPath)' == ''">
+    <!-- Typical 64-bit DI API 10.0 location; override with -p:SapInteropPath=... -->
+    <SapInteropPath>C:\Program Files\SAP\SAP Business One DI API\DI API 90\Interop.SAPbobsCOM.dll</SapInteropPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SapB1.ItemImport.Core\SapB1.ItemImport.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="Interop.SAPbobsCOM">
+      <HintPath>$(SapInteropPath)</HintPath>
+      <Private>true</Private>
+      <EmbedInteropTypes>false</EmbedInteropTypes>
+    </Reference>
+  </ItemGroup>
+
+  <Target Name="VerifySapInterop" BeforeTargets="ResolveAssemblyReferences">
+    <Error Condition="!Exists('$(SapInteropPath)')"
+           Text="Interop.SAPbobsCOM.dll was not found at '$(SapInteropPath)'. Install the SAP Business One DI API (matching your SAP version and bitness), then pass its path: -p:SapInteropPath=&quot;C:\Program Files\SAP\SAP Business One DI API\DI API 90\Interop.SAPbobsCOM.dll&quot;. If you do not need the DI API, use the Service Layer gateway instead and do not build this project." />
+  </Target>
+
+</Project>

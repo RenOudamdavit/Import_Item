@@ -1,0 +1,15 @@
+{
+  // Source column -> SAP Business One Items property.
+  // Use this when a source header cannot be resolved by name, for example an export in another
+  // language. Map a column to null to drop it deliberately and silence the unknown-column warning.
+  "Columns": {
+    "Artikelnummer": "ItemCode",
+    "Artikelbezeichnung": "ItemName",
+    "Warengruppe": "ItemsGroupCode",
+    "Lagerartikel": "InventoryItem",
+    "Hauptlieferant": "Mainsupplier",
+    "Standardlager": "DefaultWarehouse",
+    "Verkaufspreis": "Price",
+    "Kostenstelle": null
+  }
+}
