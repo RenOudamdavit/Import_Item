@@ -47,11 +47,58 @@ public static class Program
             cancellation.Cancel();
         };
 
+        AppConfig config;
+
+        try
+        {
+            config = AppConfig.Load(cli.ConfigPath);
+        }
+        catch (UsageException ex)
+        {
+            logger.Error(ex.Message);
+            return ExitCodes.Usage;
+        }
+
+        logger.Info(
+            config.SourcePath is null
+                ? "No configuration file found — using command line arguments and environment variables only."
+                : $"Configuration file: {Path.GetFullPath(config.SourcePath)}");
+
+        if (cli.TestConnection)
+        {
+            try
+            {
+                return await ConnectionTester
+                    .RunAsync(OptionsComposer.ResolveServiceLayer(cli, config), logger, cancellation.Token)
+                    .ConfigureAwait(false);
+            }
+            catch (UsageException ex)
+            {
+                logger.Error(ex.Message);
+                return ExitCodes.Usage;
+            }
+            catch (ArgumentException ex)
+            {
+                logger.Error(ex.Message);
+                return ExitCodes.Usage;
+            }
+            catch (SapConnectionException ex)
+            {
+                logger.Error(ex.Message);
+                return ExitCodes.Aborted;
+            }
+            catch (OperationCanceledException)
+            {
+                logger.Warn("The connection test was cancelled.");
+                return ExitCodes.Aborted;
+            }
+        }
+
         ResolvedOptions options;
 
         try
         {
-            options = OptionsComposer.Resolve(cli, AppConfig.Load(cli.ConfigPath));
+            options = OptionsComposer.Resolve(cli, config);
         }
         catch (UsageException ex)
         {
@@ -139,8 +186,11 @@ public static class Program
                   --failures-only            Write only failed rows to the report.
 
             CONNECTION
-              -c, --config <path>            Configuration file. Defaults to appsettings.json in the
-                                             working directory, then beside the executable.
+                  --test-connection          Log in to SAP, report the company and version, and exit.
+                                             Needs no source file. Run this first.
+              -c, --config <path>            Configuration file. When omitted, looks for
+                                             appsettings.Local.json then appsettings.json, in the
+                                             working directory then beside the executable.
                   --url <url>                Service Layer root, e.g. https://sap:50000/b1s/v1.
                   --company <db>             Company database, e.g. SBODEMOGB.
                   --user <name>              SAP Business One user name.

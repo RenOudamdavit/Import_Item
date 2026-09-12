@@ -55,6 +55,8 @@ public sealed class CliArguments
 
     public bool ShowFields { get; private set; }
 
+    public bool TestConnection { get; private set; }
+
     public static CliArguments Parse(string[] args)
     {
         ArgumentNullException.ThrowIfNull(args);
@@ -73,6 +75,9 @@ public sealed class CliArguments
                     break;
                 case "--show-fields":
                     parsed.ShowFields = true;
+                    break;
+                case "--test-connection":
+                    parsed.TestConnection = true;
                     break;
                 case "-f":
                 case "--file":

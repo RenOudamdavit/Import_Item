@@ -70,35 +70,171 @@ dotnet test  Import_Item.sln
 
 ---
 
-## Quick start
+## Configure the connection
 
-1. Set the credentials (the password is never read from an argument):
+You need four values. All of them come from the SAP Business One installation, not from this tool:
 
-   ```bash
-   export SAPB1_URL="https://sap-host:50000/b1s/v1"
-   export SAPB1_COMPANY="SBODEMOGB"
-   export SAPB1_USER="manager"
-   export SAPB1_PASSWORD='...'
+| Value | Where to find it |
+| --- | --- |
+| **Service Layer URL** | `https://<sap-server>:50000/b1s/v1`. Port 50000 is the default HTTPS port for the Service Layer. Ask your SAP administrator for the host name. |
+| **Company database** | The `CompanyDB` name, e.g. `SBODEMOGB` — the same company you pick on the SAP Business One login screen. |
+| **User name** | A SAP Business One user (not a Windows or database user) with permission to add and update items. |
+| **Password** | That user's SAP password. |
+
+Confirm the endpoint exists before involving this tool at all:
+
+```bash
+curl -k https://sap-server:50000/b1s/v1/$metadata | head
+```
+
+If that returns XML, the Service Layer is reachable. If it hangs or refuses, the problem is the host,
+the port or a firewall — nothing in this repo can help with that.
+
+### Where to put the values
+
+Pick **one** of the two. Both are checked in this order: command line → environment → file.
+
+**Option A — a local configuration file (easiest to repeat)**
+
+Copy the example and edit your copy. `appsettings.Local.json` is git-ignored, so your password never
+gets committed, and the tool prefers it over `appsettings.json` automatically.
+
+```bash
+cd src/SapB1.ItemImport.Cli
+cp appsettings.json appsettings.Local.json      # Windows: copy appsettings.json appsettings.Local.json
+```
+
+Then edit just the top block:
+
+```json
+{
+  "ServiceLayer": {
+    "BaseUrl": "https://sap-server:50000/b1s/v1",
+    "CompanyDb": "SBODEMOGB",
+    "UserName": "manager",
+    "Password": "your-password"
+  }
+}
+```
+
+**Option B — environment variables (better for scheduled runs and shared machines)**
+
+PowerShell:
+
+```powershell
+$env:SAPB1_URL      = "https://sap-server:50000/b1s/v1"
+$env:SAPB1_COMPANY  = "SBODEMOGB"
+$env:SAPB1_USER     = "manager"
+$env:SAPB1_PASSWORD = "your-password"
+```
+
+Windows `cmd`:
+
+```cmd
+set SAPB1_URL=https://sap-server:50000/b1s/v1
+set SAPB1_COMPANY=SBODEMOGB
+set SAPB1_USER=manager
+set SAPB1_PASSWORD=your-password
+```
+
+bash / zsh:
+
+```bash
+export SAPB1_URL="https://sap-server:50000/b1s/v1"
+export SAPB1_COMPANY="SBODEMOGB"
+export SAPB1_USER="manager"
+export SAPB1_PASSWORD='your-password'
+```
+
+There is deliberately no `--password` argument: arguments are visible to every user in the process
+list and are written to shell history.
+
+### The TLS certificate (this is what usually fails first)
+
+A default on-premise Service Layer ships a **self-signed** certificate, which .NET correctly refuses.
+Three ways to deal with it, best first:
+
+1. **Install the SAP certificate** into the machine trust store. Nothing to configure here — it just
+   works afterwards. This is the right answer for production.
+2. **Pin the certificate** by thumbprint: `--certificate-thumbprint <sha1>`. Get the thumbprint with:
+
+   ```powershell
+   $request = [Net.HttpWebRequest]::Create("https://sap-server:50000/b1s/v1/")
+   $request.ServerCertificateValidationCallback = { $true }
+   try { $request.GetResponse() | Out-Null } catch { }
+   $request.ServicePoint.Certificate.GetCertHashString()
    ```
 
-2. Check the file without touching SAP:
+3. **`--trust-any-certificate`** — accepts *any* certificate, including an attacker's, and logs a
+   warning. Fine to prove the rest of your configuration works; do not leave it on.
 
-   ```bash
-   dotnet run --project src/SapB1.ItemImport.Cli -- \
-     --file sample-data/items.csv --dry-run
-   ```
+---
 
-3. Run it for real:
+## Run it
 
-   ```bash
-   dotnet run --project src/SapB1.ItemImport.Cli -- \
-     --file sample-data/items.csv --report out/report.csv
-   ```
+Work through these four steps in order. Each one proves something the next one depends on.
 
-`--dry-run` still checks which items exist, so the dry-run report tells you exactly how many creates
-and updates to expect.
+All commands below assume you are in the repository root. `--` separates `dotnet run` options from
+the tool's own options; everything after it belongs to the importer.
 
-Run `sapb1-import-items --help` for every option, and `--show-fields` for the columns it understands.
+**1. Check the tool runs at all**
+
+```bash
+dotnet run --project src/SapB1.ItemImport.Cli -- --help
+```
+
+**2. Check the connection** — needs no file, writes nothing to SAP:
+
+```bash
+dotnet run --project src/SapB1.ItemImport.Cli -- --test-connection
+```
+
+It echoes which configuration file it picked up, the company, the SAP version and the TLS mode. Do not
+move on until this prints `Connection OK`.
+
+**3. Dry run against your file** — validates everything and reports what *would* happen, still without
+writing:
+
+```bash
+dotnet run --project src/SapB1.ItemImport.Cli -- --file sample-data/items.csv --dry-run
+```
+
+Existence is still checked, so the summary tells you exactly how many creates and updates to expect.
+Fix anything the report lists before step 4.
+
+**4. The real import**
+
+```bash
+dotnet run --project src/SapB1.ItemImport.Cli -- --file sample-data/items.csv --report out/report.csv
+```
+
+Then swap `sample-data/items.csv` for your own file.
+
+### Running it without `dotnet run`
+
+Once you are past experimenting, publish a self-contained folder and call the executable directly —
+which is also what a scheduled task should do:
+
+```bash
+dotnet publish src/SapB1.ItemImport.Cli -c Release -o publish
+./publish/sapb1-import-items --file items.csv --dry-run
+```
+
+On Windows that is `publish\sapb1-import-items.exe`. Copy your `appsettings.Local.json` next to the
+executable, or rely on environment variables.
+
+### Useful extras
+
+```bash
+# Every SAP property and column alias the tool understands
+dotnet run --project src/SapB1.ItemImport.Cli -- --show-fields
+
+# Only create new items, never touch existing ones, and stop after 10 bad rows
+... -- --file items.csv --mode create-only --max-errors 10
+
+# European export: semicolon separated, comma decimals, legacy encoding
+... -- --file artikel.csv --delimiter semicolon --culture de-DE --encoding latin1
+```
 
 ---
 
@@ -199,7 +335,12 @@ Ctrl+C cancels cooperatively: the current item finishes and the report is closed
 
 ## Configuration
 
-Precedence is **command line → environment → `appsettings.json` → defaults**.
+Precedence is **command line → environment → configuration file → defaults**.
+
+With no `--config`, the tool looks for `appsettings.Local.json` first, then `appsettings.json`, in the
+working directory and then beside the executable. It logs which file it used at startup. Keep
+credentials in the `.Local.json` copy — it is git-ignored; the committed `appsettings.json` is an
+annotated example.
 
 | Environment variable | Purpose |
 | --- | --- |

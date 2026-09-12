@@ -18,21 +18,14 @@ namespace SapB1.ItemImport.Cli;
 /// </remarks>
 public static class OptionsComposer
 {
-    public static ResolvedOptions Resolve(CliArguments cli, AppConfig config)
+    /// <summary>
+    /// Resolves only the SAP connection settings. Shared by the import run and by
+    /// <c>--test-connection</c>, so a connection check needs no source file.
+    /// </summary>
+    public static ServiceLayerOptions ResolveServiceLayer(CliArguments cli, AppConfig config)
     {
         ArgumentNullException.ThrowIfNull(cli);
         ArgumentNullException.ThrowIfNull(config);
-
-        var sourceFile = cli.File;
-        if (string.IsNullOrWhiteSpace(sourceFile))
-        {
-            throw new UsageException("No source file given. Pass --file <path-to-csv>.");
-        }
-
-        if (!File.Exists(sourceFile))
-        {
-            throw new UsageException($"The source file '{sourceFile}' does not exist.");
-        }
 
         var serviceLayer = new ServiceLayerOptions
         {
@@ -83,6 +76,27 @@ public static class OptionsComposer
 
         // Fails fast with a readable message rather than at the first HTTP call.
         serviceLayer.Validate();
+
+        return serviceLayer;
+    }
+
+    public static ResolvedOptions Resolve(CliArguments cli, AppConfig config)
+    {
+        ArgumentNullException.ThrowIfNull(cli);
+        ArgumentNullException.ThrowIfNull(config);
+
+        var sourceFile = cli.File;
+        if (string.IsNullOrWhiteSpace(sourceFile))
+        {
+            throw new UsageException("No source file given. Pass --file <path-to-csv>.");
+        }
+
+        if (!File.Exists(sourceFile))
+        {
+            throw new UsageException($"The source file '{sourceFile}' does not exist.");
+        }
+
+        var serviceLayer = ResolveServiceLayer(cli, config);
 
         var import = new ImportOptions
         {

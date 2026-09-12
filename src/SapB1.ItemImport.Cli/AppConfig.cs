@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace SapB1.ItemImport.Cli;
 
@@ -21,8 +22,17 @@ public sealed class AppConfig
     public MappingConfig Mapping { get; set; } = new();
 
     /// <summary>
-    /// Loads configuration from <paramref name="path"/>, or from <c>appsettings.json</c> beside the
-    /// executable / in the working directory when no path is given.
+    /// File this configuration was read from, or <c>null</c> when no file was found. Reported at
+    /// startup, because "which settings file did it actually pick up?" is otherwise guesswork.
+    /// </summary>
+    [JsonIgnore]
+    public string? SourcePath { get; set; }
+
+    /// <summary>
+    /// Loads configuration from <paramref name="path"/>. When no path is given, looks for
+    /// <c>appsettings.Local.json</c> first and then <c>appsettings.json</c>, in the working directory
+    /// and then beside the executable. The <c>.Local.json</c> file is git-ignored, so it is the place
+    /// to put credentials.
     /// </summary>
     public static AppConfig Load(string? path)
     {
@@ -45,7 +55,9 @@ public sealed class AppConfig
 
         try
         {
-            return JsonSerializer.Deserialize<AppConfig>(json, SerializerOptions) ?? new AppConfig();
+            var config = JsonSerializer.Deserialize<AppConfig>(json, SerializerOptions) ?? new AppConfig();
+            config.SourcePath = resolved;
+            return config;
         }
         catch (JsonException ex)
         {
@@ -135,15 +147,18 @@ public sealed class AppConfig
             return path;
         }
 
-        foreach (var candidate in new[]
-                 {
-                     Path.Combine(Environment.CurrentDirectory, "appsettings.json"),
-                     Path.Combine(AppContext.BaseDirectory, "appsettings.json"),
-                 })
+        // Local first: it is git-ignored, so it is where credentials belong and it must win over the
+        // committed example file.
+        foreach (var directory in new[] { Environment.CurrentDirectory, AppContext.BaseDirectory })
         {
-            if (File.Exists(candidate))
+            foreach (var name in new[] { "appsettings.Local.json", "appsettings.json" })
             {
-                return candidate;
+                var candidate = Path.Combine(directory, name);
+
+                if (File.Exists(candidate))
+                {
+                    return candidate;
+                }
             }
         }
 
